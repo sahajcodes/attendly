@@ -4,3 +4,4 @@ pyopenssl
 flask-wtf
 psycopg[binary]>=3.2
 python-dotenv>=1.0
+gunicorn>=23.0
