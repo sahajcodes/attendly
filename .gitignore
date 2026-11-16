@@ -17,7 +17,7 @@ database_backup/
 .env
 .secret_key
 .secret_key.*.tmp
-
+.env.example
 # Logs
 *.log
 
