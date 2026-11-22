@@ -1,0 +1,32 @@
+# Secrets: never bake these into the image.
+.env
+.env.*
+.secret_key
+.secret_key.*
+
+# Version control and local tools
+.git
+.gitignore
+cloudflared.exe
+
+# Virtual environments (the image installs its own)
+.venv
+.venv-*
+venv
+
+# Python cache and logs
+__pycache__
+*.pyc
+*.log
+
+# Local databases and backups
+*.db
+*.db-wal
+*.db-shm
+database_backup
+
+# Not needed at runtime
+tests
+legacy
+Dockerfile
+.dockerignore

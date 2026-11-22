@@ -4,27 +4,27 @@
 body.th-page {
   color-scheme: light;
 
-  --bg: #f2f5fa;
+  --bg: #f0fafa;
   --surface: #ffffff;
-  --surface-2: #f6f8fc;
-  --bar: rgba(242, 245, 250, .84);
-  --ink: #0b1b33;
-  --muted: #4f5f78;
-  --faint: #76869d;
-  --line: #e3e9f2;
+  --surface-2: #f0fafa;
+  --bar: rgba(240, 250, 250, .84);
+  --ink: #0c2935;
+  --muted: #415861;
+  --faint: #5f727a;
+  --line: #d3e8e8;
 
-  --brand: #0284c7;
-  --brand-ink: #0369a1;
-  --violet: #6d28d9;
-  --tint: rgba(2, 132, 199, .10);
-  --grad: linear-gradient(135deg, #0284c7 0%, #4f56d8 58%, #6d28d9 100%);
+  --brand: #1b8393;
+  --brand-ink: #166472;
+  --violet: #166472;
+  --tint: rgba(27, 131, 147, .10);
+  --grad: linear-gradient(135deg, #1b8393 0%, #166472 58%, #0c2935 100%);
 
   --r-xl: 28px;
   --r-lg: 22px;
   --r-md: 16px;
 
-  --shadow-sm: 0 1px 2px rgba(11, 27, 51, .05), 0 1px 1px rgba(11, 27, 51, .03);
-  --shadow-md: 0 14px 30px -14px rgba(11, 27, 51, .22);
+  --shadow-sm: 0 1px 2px rgba(12, 41, 53, .05), 0 1px 1px rgba(12, 41, 53, .03);
+  --shadow-md: 0 14px 30px -14px rgba(12, 41, 53, .22);
 
   --pad: 16px;
   --top-h: 60px;
@@ -38,19 +38,19 @@ body.th-page {
 html.dark-mode body.th-page {
   color-scheme: dark;
 
-  --bg: #090e19;
-  --surface: #111a2b;
-  --surface-2: #162134;
-  --bar: rgba(9, 14, 25, .84);
-  --ink: #e8eef8;
-  --muted: #a9b6c9;
-  --faint: #7f8ea5;
-  --line: #1f2c42;
+  --bg: #081b22;
+  --surface: #0c2935;
+  --surface-2: #1d3843;
+  --bar: rgba(8, 27, 34, .84);
+  --ink: #e2f6f6;
+  --muted: #a6bdc0;
+  --faint: #849ca1;
+  --line: #104451;
 
-  --brand: #38bdf8;
-  --brand-ink: #7dd3fc;
-  --violet: #a78bfa;
-  --tint: rgba(56, 189, 248, .13);
+  --brand: #37b4a6;
+  --brand-ink: #9ae8d8;
+  --violet: #37b4a6;
+  --tint: rgba(55, 180, 166, .13);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .35);
   --shadow-md: 0 14px 30px -14px rgba(0, 0, 0, .65);
@@ -80,8 +80,8 @@ body.th-page {
   line-height: 1.5;
   color: var(--ink);
   background:
-    radial-gradient(34rem 22rem at 100% -4%, rgba(79, 86, 216, .10), transparent 70%),
-    radial-gradient(30rem 20rem at -6% 0%, rgba(2, 132, 199, .10), transparent 70%),
+    radial-gradient(34rem 22rem at 100% -4%, rgba(22, 100, 114, .10), transparent 70%),
+    radial-gradient(30rem 20rem at -6% 0%, rgba(27, 131, 147, .10), transparent 70%),
     var(--bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -89,8 +89,8 @@ body.th-page {
 
 html.dark-mode body.th-page {
   background:
-    radial-gradient(34rem 22rem at 100% -4%, rgba(109, 40, 217, .16), transparent 70%),
-    radial-gradient(30rem 20rem at -6% 0%, rgba(2, 132, 199, .14), transparent 70%),
+    radial-gradient(34rem 22rem at 100% -4%, rgba(12, 41, 53, .16), transparent 70%),
+    radial-gradient(30rem 20rem at -6% 0%, rgba(27, 131, 147, .14), transparent 70%),
     var(--bg);
 }
 
@@ -185,7 +185,7 @@ html.dark-mode body.th-page {
 
 .th-top.is-stuck {
   border-bottom-color: var(--line);
-  box-shadow: 0 10px 24px -18px rgba(11, 27, 51, .35);
+  box-shadow: 0 10px 24px -18px rgba(12, 41, 53, .35);
 }
 
 .th-top__in {
@@ -214,7 +214,7 @@ html.dark-mode body.th-page {
   overflow: hidden;
   background: var(--grad);
   border-radius: 11px;
-  box-shadow: 0 6px 14px -6px rgba(79, 86, 216, .6);
+  box-shadow: 0 6px 14px -6px rgba(27, 131, 147, .6);
 }
 
 .th-logo img {
@@ -287,6 +287,19 @@ html.dark-mode body.th-page {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* phone: Password link is icon-only, so it gets a key glyph */
+@media (max-width: 639px) {
+  a.th-icon-btn--text::before {
+    content: "";
+    width: 20px;
+    height: 20px;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='7.5' cy='15.5' r='5.5'/%3E%3Cpath d='M11.4 11.6 21 2M16.5 6.5l3 3M14 9l2.5 2.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='7.5' cy='15.5' r='5.5'/%3E%3Cpath d='M11.4 11.6 21 2M16.5 6.5l3 3M14 9l2.5 2.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+}
+
 
 .ic-sun {
   display: none;
@@ -378,7 +391,7 @@ html.dark-mode .ic-sun {
   color: #fff;
   background: var(--grad);
   border-color: transparent;
-  box-shadow: 0 8px 16px -8px rgba(79, 70, 229, .7);
+  box-shadow: 0 8px 16px -8px rgba(27, 131, 147, .7);
 }
 
 
@@ -391,7 +404,7 @@ html.dark-mode .ic-sun {
   background: var(--grad);
   border: 0;
   border-radius: 999px;
-  box-shadow: 0 10px 20px -10px rgba(79, 70, 229, .7);
+  box-shadow: 0 10px 20px -10px rgba(27, 131, 147, .7);
 }
 
 .th-empty {
@@ -490,7 +503,7 @@ html.dark-mode .ic-sun {
 .th-tabbar a.is-primary .th-tabbar__ic {
   color: #fff;
   background: var(--grad);
-  box-shadow: 0 8px 16px -6px rgba(79, 70, 229, .65);
+  box-shadow: 0 8px 16px -6px rgba(27, 131, 147, .65);
 }
 
 /* ---------- 9. Larger screens ---------- */
@@ -565,8 +578,8 @@ html.dark-mode .ic-sun {
 /* ==========================================================================
    Session QR page
    ========================================================================== */
-body.th-page { --ok: #15803d; --warn: #b45309; --bad: #dc2626; --track: #e6ecf5; }
-html.dark-mode body.th-page { --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --track: #22314a; }
+body.th-page { --ok: #15803d; --warn: #b45309; --bad: #dc2626; --track: #d3e8e8; }
+html.dark-mode body.th-page { --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --track: #13525f; }
 body.qr-lock { overflow: hidden; }
 .th-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; }
 
@@ -587,7 +600,7 @@ body.qr-lock { overflow: hidden; }
 /* QR card: always white so every phone camera can read it, even in dark mode */
 .qr-card { display: grid; justify-items: center; gap: 14px; padding: 22px 18px 18px; text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow-md); }
 .qr-scan { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--brand-ink); }
-.qr-frame { width: min(100%, 20rem); padding: 14px; background: #fff; border-radius: 22px; box-shadow: 0 0 0 1px rgba(11, 27, 51, .08), 0 18px 30px -18px rgba(11, 27, 51, .35); }
+.qr-frame { width: min(100%, 20rem); padding: 14px; background: #fff; border-radius: 22px; box-shadow: 0 0 0 1px rgba(12, 41, 53, .08), 0 18px 30px -18px rgba(12, 41, 53, .35); }
 .qr-img { display: block; width: 100%; height: auto; aspect-ratio: 1; image-rendering: pixelated; }
 .qr-time { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--brand-ink); background: var(--tint); border-radius: 999px; }
 .qr-time.is-low { color: var(--bad); background: color-mix(in srgb, var(--bad) 13%, transparent); animation: qr-blink 1s infinite; }
@@ -596,13 +609,13 @@ body.qr-lock { overflow: hidden; }
 .qr-btn:active { transform: scale(.96); }
 .qr-btn .ic { color: var(--brand-ink); }
 .qr-url { max-width: 100%; font-size: 11.5px; color: var(--faint); word-break: break-all; user-select: all; }
-.qr-exit { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; display: grid; place-items: center; width: 48px; height: 48px; color: #0b1b33; background: #eef2f8; border: 0; border-radius: 50%; }
+.qr-exit { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; display: grid; place-items: center; width: 48px; height: 48px; color: #0c2935; background: #d3e8e8; border: 0; border-radius: 50%; }
 
 /* full screen (projector) */
-.qr-card.is-full { position: fixed; inset: 0; z-index: 300; align-content: center; gap: 22px; padding: 24px; border: 0; border-radius: 0; background: #fff; color: #0b1b33; overflow: auto; }
+.qr-card.is-full { position: fixed; inset: 0; z-index: 300; align-content: center; gap: 22px; padding: 24px; border: 0; border-radius: 0; background: #fff; color: #0c2935; overflow: auto; }
 .qr-card.is-full .qr-frame { width: min(86vw, 70vh, 40rem); box-shadow: none; padding: 0; }
-.qr-card.is-full .qr-scan { font-size: 1.1rem; color: #0369a1; }
-.qr-card.is-full .qr-time { font-size: 1.6rem; padding: 10px 24px; color: #0369a1; background: rgba(2, 132, 199, .1); }
+.qr-card.is-full .qr-scan { font-size: 1.1rem; color: #166472; }
+.qr-card.is-full .qr-time { font-size: 1.6rem; padding: 10px 24px; color: #166472; background: rgba(27, 131, 147, .1); }
 .qr-card.is-full .qr-acts, .qr-card.is-full .qr-url { display: none; }
 
 /* close session */
@@ -636,7 +649,7 @@ body.qr-lock { overflow: hidden; }
 .qr-sum__top span { font-size: 14px; color: var(--muted); }
 .qr-sum__top > b { font-size: 1.1rem; font-weight: 800; color: var(--ok); }
 .qr-meter { height: 10px; background: var(--track); border-radius: 999px; overflow: hidden; }
-.qr-meter i { display: block; height: 100%; width: calc(var(--p) * 1%); background: linear-gradient(90deg, var(--ok), color-mix(in srgb, var(--ok) 60%, #38bdf8)); border-radius: inherit; transition: width .6s var(--ease); }
+.qr-meter i { display: block; height: 100%; width: calc(var(--p) * 1%); background: linear-gradient(90deg, var(--ok), color-mix(in srgb, var(--ok) 60%, #37b4a6)); border-radius: inherit; transition: width .6s var(--ease); }
 .qr-sum__sub { font-size: 12.5px; color: var(--faint); }
 .qr-list { display: grid; gap: 8px; }
 .qr-none { padding: 24px 0; text-align: center; font-size: 14px; color: var(--muted); }
