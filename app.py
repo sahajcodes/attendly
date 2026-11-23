@@ -527,48 +527,71 @@ def _locked_message(locked_until):
 
 
 def _register_attempt(email, succeeded):
-    """Record one login attempt. Return when the lock ends, or None if not locked.
-
-    The lock check and the counter update happen in one transaction.
-    A lock on this email is taken first, so parallel requests
-    run one at a time. A request that started before the lock was set still
-    sees the lock here, so it cannot clear the lock or add more guesses.
-    """
+    """Record login attempt and measure database operation timings."""
+    total_started = time.perf_counter()
     now = datetime.now()
-    conn = get_db_connection()
-    try:
-        conn.execute("SELECT pg_advisory_xact_lock(hashtext(?))", (email,))
+    timings = {}
 
+    started = time.perf_counter()
+    conn = get_db_connection()
+    timings["checkout"] = (time.perf_counter() - started) * 1000
+
+    try:
+        started = time.perf_counter()
+        conn.execute(
+            "SELECT pg_advisory_xact_lock(hashtext(?))",
+            (email,),
+        )
+        timings["advisory_lock"] = (time.perf_counter() - started) * 1000
+
+        started = time.perf_counter()
         row = conn.execute(
-            "SELECT failed_count, last_failed_at, locked_until "
-            "FROM login_attempts WHERE email = ?",
+            """
+            SELECT failed_count, last_failed_at, locked_until
+            FROM login_attempts
+            WHERE email = ?
+            """,
             (email,),
         ).fetchone()
+        timings["attempt_select"] = (time.perf_counter() - started) * 1000
 
         if row is not None and row["locked_until"]:
             locked_until = datetime.fromisoformat(row["locked_until"])
             if locked_until > now:
-                # Still locked: change nothing, not even for a correct password.
+                started = time.perf_counter()
                 conn.commit()
+                timings["commit"] = (time.perf_counter() - started) * 1000
                 return locked_until
 
         if succeeded:
-            conn.execute("DELETE FROM login_attempts WHERE email = ?", (email,))
+            started = time.perf_counter()
+            conn.execute(
+                "DELETE FROM login_attempts WHERE email = ?",
+                (email,),
+            )
+            timings["write"] = (time.perf_counter() - started) * 1000
+
+            started = time.perf_counter()
             conn.commit()
+            timings["commit"] = (time.perf_counter() - started) * 1000
             return None
 
         count = 0
         if row is not None and row["last_failed_at"]:
             last_failed = datetime.fromisoformat(row["last_failed_at"])
-            if now - last_failed <= timedelta(minutes=FAILED_LOGIN_WINDOW_MINUTES):
+            if now - last_failed <= timedelta(
+                minutes=FAILED_LOGIN_WINDOW_MINUTES
+            ):
                 count = row["failed_count"]
-        count += 1
 
+        count += 1
         locked_until = None
+
         if count >= MAX_FAILED_LOGINS:
             locked_until = now + timedelta(minutes=LOCKOUT_MINUTES)
             count = 0
 
+        started = time.perf_counter()
         conn.execute(
             """
             INSERT INTO login_attempts
@@ -583,10 +606,16 @@ def _register_attempt(email, succeeded):
                 email,
                 count,
                 now.isoformat(timespec="seconds"),
-                locked_until.isoformat(timespec="seconds") if locked_until else None,
+                locked_until.isoformat(timespec="seconds")
+                if locked_until else None,
             ),
         )
+        timings["write"] = (time.perf_counter() - started) * 1000
+
+        started = time.perf_counter()
         conn.commit()
+        timings["commit"] = (time.perf_counter() - started) * 1000
+
         return locked_until
 
     except Exception:
@@ -595,39 +624,65 @@ def _register_attempt(email, succeeded):
 
     finally:
         conn.close()
+        timings["total"] = (time.perf_counter() - total_started) * 1000
+
+        app.logger.warning(
+            "LOGIN_DB_TIMING %s",
+            " ".join(f"{key}={value:.2f}ms" for key, value in timings.items()),
+        )
+
 
 
 def attempt_login(email, password):
-    """Check an email and password against the lockout rules.
+    """Check credentials and log timings for diagnosis."""
+    started = time.perf_counter()
 
-    Returns (user, error). On success error is None. On failure user is None
-    and error is the message to show the person.
-    """
-    # A blank form or an oversized email is not a guess at a real password,
-    # so it is rejected here and does not count toward the lockout.
     if not email or not password:
         return None, "Please enter your email and password."
+
     if len(email) > 254:
         return None, INVALID_LOGIN_MESSAGE
 
-    _ensure_login_attempts_table()
-
+    # Measure database connection checkout.
+    checkout_started = time.perf_counter()
     conn = get_db_connection()
+    checkout_ms = (time.perf_counter() - checkout_started) * 1000
+
     try:
+        query_started = time.perf_counter()
         user = conn.execute(
             "SELECT * FROM users WHERE email = ?",
             (email,),
         ).fetchone()
+        query_ms = (time.perf_counter() - query_started) * 1000
     finally:
         conn.close()
 
-    # The hash check always runs, even when the email does not exist.
-    # Skipping it would make a wrong email return much faster than a wrong password.
+    # Measure password verification.
+    hash_started = time.perf_counter()
     stored_hash = user["password"] if user is not None else DUMMY_PASSWORD_HASH
     password_ok = check_password_hash(stored_hash, password)
+    hash_ms = (time.perf_counter() - hash_started) * 1000
+
     succeeded = user is not None and password_ok
 
+    # Measure lockout processing.
+    lockout_started = time.perf_counter()
     locked_until = _register_attempt(email, succeeded)
+    lockout_ms = (time.perf_counter() - lockout_started) * 1000
+
+    total_ms = (time.perf_counter() - started) * 1000
+
+    app.logger.warning(
+        "LOGIN_TIMING checkout=%.2fms user_query=%.2fms "
+        "password_hash=%.2fms lockout=%.2fms total=%.2fms",
+        checkout_ms,
+        query_ms,
+        hash_ms,
+        lockout_ms,
+        total_ms,
+    )
+
     if locked_until is not None:
         return None, _locked_message(locked_until)
 
@@ -635,8 +690,6 @@ def attempt_login(email, password):
         return None, INVALID_LOGIN_MESSAGE
 
     return user, None
-
-
 # =========================================================
 # STUDENT LOGIN
 # URL: /login
@@ -893,78 +946,85 @@ def teacher_dashboard():
     conn = get_db_connection()
 
     try:
-        teacher = conn.execute(
+        teacher_id = session["user_id"]
+
+        row = conn.execute(
             """
-            SELECT name, email
-            FROM users
-            WHERE id = ? AND role = 'teacher'
+            SELECT
+                u.name,
+                u.email,
+
+                (
+                    SELECT COUNT(DISTINCT e.student_id)
+                    FROM student_enrollments e
+                    JOIN classes c ON c.id = e.class_id
+                    WHERE c.created_by = u.id
+                ) AS total_students,
+
+                (
+                    SELECT COUNT(*)
+                    FROM attendance_records r
+                    JOIN attendance_sessions s
+                        ON s.id = r.session_id
+                    JOIN student_enrollments se
+                        ON se.class_id = s.class_id
+                        AND se.student_id = r.student_id
+                    WHERE s.teacher_id = u.id
+                        AND r.status = 'Present'
+                ) AS total_attendance,
+
+                COALESCE(
+                    (
+                        SELECT jsonb_agg(
+                            to_jsonb(student_rows)
+                            ORDER BY student_rows.roll_number
+                        )
+                        FROM (
+                            SELECT DISTINCT
+                                users.name,
+                                users.email,
+                                students.roll_number,
+                                students.department,
+                                students.course,
+                                students.year,
+                                students.semester,
+                                students.residence_type
+                            FROM student_enrollments e
+                            JOIN classes c ON c.id = e.class_id
+                            JOIN students ON students.id = e.student_id
+                            JOIN users ON users.id = students.user_id
+                            WHERE c.created_by = u.id
+                        ) AS student_rows
+                    ),
+                    '[]'::jsonb
+                ) AS students
+
+            FROM users u
+            WHERE u.id = %s AND u.role = 'teacher'
             """,
-            (session["user_id"],)
+            (teacher_id,),
         ).fetchone()
 
-        if teacher is None:
+        if row is None:
             session.clear()
             flash("Teacher account not found.")
             return redirect(url_for("faculty_login"))
 
-        # Only this teacher's own data: students enrolled in this teacher's classes,
-        # and attendance from this teacher's sessions. Other teachers' data is never counted.
-        teacher_id = session["user_id"]
-
-        total_students = conn.execute(
-            """
-            SELECT COUNT(DISTINCT e.student_id)
-            FROM student_enrollments e
-            JOIN classes c ON c.id = e.class_id
-            WHERE c.created_by = ?
-            """,
-            (teacher_id,),
-        ).fetchone()[0]
-
-        total_attendance = conn.execute(
-            """
-            SELECT COUNT(*)
-            FROM attendance_records r
-            JOIN attendance_sessions s ON s.id = r.session_id
-            JOIN student_enrollments se
-                 ON se.class_id = s.class_id AND se.student_id = r.student_id
-            WHERE s.teacher_id = ? AND r.status = 'Present'
-            """,
-            (teacher_id,),
-        ).fetchone()[0]
-
-        students = conn.execute(
-            """
-            SELECT DISTINCT
-                users.name,
-                users.email,
-                students.roll_number,
-                students.department,
-                students.course,
-                students.year,
-                students.semester,
-                students.residence_type
-            FROM student_enrollments e
-            JOIN classes c ON c.id = e.class_id
-            JOIN students ON students.id = e.student_id
-            JOIN users ON users.id = students.user_id
-            WHERE c.created_by = ?
-            ORDER BY students.roll_number
-            """,
-            (teacher_id,),
-        ).fetchall()
+        teacher = {
+            "name": row["name"],
+            "email": row["email"],
+        }
 
         return render_template(
             "teacher_dashboard.html",
             teacher=teacher,
-            total_students=total_students,
-            total_attendance=total_attendance,
-            students=students
+            total_students=row["total_students"],
+            total_attendance=row["total_attendance"],
+            students=row["students"] or [],
         )
 
     finally:
         conn.close()
-
 
 # =========================================================
 # LOGOUT

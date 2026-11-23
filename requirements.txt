@@ -3,5 +3,6 @@ qrcode[pil]
 pyopenssl
 flask-wtf
 psycopg[binary]>=3.2
+psycopg-pool>=3.3
 python-dotenv>=1.0
 gunicorn>=23.0

@@ -7,7 +7,11 @@ so existing data is never deleted.
 """
 import logging
 import re
+import atexit
+import os
+import threading
 
+from psycopg_pool import ConnectionPool
 import psycopg
 
 import config
@@ -74,12 +78,12 @@ def _translate(sql, params):
         return _NAMED_PARAM.sub(lambda m: "%(" + m.group(1) + ")s", sql)
     return sql.replace("?", "%s")
 
-
 class _Connection:
     """Gives the rest of the app the same calls it used with SQLite."""
 
-    def __init__(self, raw):
+    def __init__(self, raw, pool):
         self._raw = raw
+        self._pool = pool
 
     def execute(self, sql, params=None):
         return self._raw.execute(_translate(sql, params), params)
@@ -91,24 +95,63 @@ class _Connection:
         self._raw.rollback()
 
     def close(self):
-        self._raw.close()
+        if self._raw is not None:
+            self._pool.putconn(self._raw)
+            self._raw = None
+
+
+_pool = None
+_pool_pid = None
+_pool_lock = threading.Lock()
+
+
+def _get_pool():
+    """Create one connection pool per application worker process."""
+    global _pool, _pool_pid
+
+    pid = os.getpid()
+
+    if _pool is None or _pool_pid != pid:
+        with _pool_lock:
+            if _pool is None or _pool_pid != pid:
+                _pool = ConnectionPool(
+                    conninfo=config.DATABASE_URL,
+                    min_size=1,
+                    max_size=3,
+                    timeout=10,
+                    kwargs={
+                        "row_factory": _row_factory,
+                        "connect_timeout": 10,
+                        "prepare_threshold": None,
+                    },
+                    open=True,
+                    name=f"attendly-{pid}",
+                )
+                _pool_pid = pid
+
+    return _pool
+
+
+def _close_pool():
+    """Close the worker's connection pool during process shutdown."""
+    if _pool is not None and _pool_pid == os.getpid():
+        _pool.close()
+
+
+atexit.register(_close_pool)
 
 
 def get_db_connection():
-    """Open a connection to the Supabase database."""
+    """Get a reusable connection from the worker's pool."""
     if not config.DATABASE_URL:
         raise RuntimeError(
             "DATABASE_URL is not set. Add it to the .env file (see .env.example)."
         )
-    raw = psycopg.connect(
-        config.DATABASE_URL,
-        row_factory=_row_factory,
-        connect_timeout=10,
-        # Supabase's transaction pooler (port 6543) does not allow prepared
-        # statements. Turning them off keeps every pooler mode working.
-        prepare_threshold=None,
-    )
-    return _Connection(raw)
+
+    pool = _get_pool()
+    raw = pool.getconn()
+
+    return _Connection(raw, pool)
 
 
 def ensure_columns(conn):
